@@ -2,6 +2,9 @@ import time
 import statistics
 from kubernetes import client, config
 import pytest
+from collections import namedtuple
+
+deployment_config = namedtuple('deployment_config', ['kube', 'config'])
 
 class Timer:    
     def __enter__(self):
@@ -12,46 +15,51 @@ class Timer:
         self.end = time.perf_counter()
         self.interval = self.end - self.start
 
-constants = {
-    "num_pods": 10,
-    "tries": 5
-}
 
-def run(kube, dep_config):
-    initial_count = dep_config.spec.replicas
+def scale_up(deployment_config, max_pod_count):
+    initial_count = deployment_config.config.spec.replicas
     scale_up_times = []
     scale_down_times = []
-    for i in range(constants["tries"]):
-        print(f"Test {i + 1}")
-        with Timer() as t:
-            kube.patch_namespaced_deployment_scale(
-                dep_config.metadata.name,
-                dep_config.metadata.namespace,
-                {'spec': {'replicas': constants["num_pods"]}}
-            )
-            i = 1
-            while(kube.read_namespaced_deployment(name=dep_config.metadata.name, namespace=dep_config.metadata.namespace).status.ready_replicas != constants["num_pods"]):
-                #print(f"sleeping: {1 * i} seconds")
-                time.sleep(1 * i)
-                i += 1
-        scale_up_times.append(t.interval)
-        with Timer() as t:
-            kube.patch_namespaced_deployment_scale(
-                dep_config.metadata.name,
-                dep_config.metadata.namespace,
-                {'spec': {'replicas': initial_count}}
-            )
-            i = 1
-            while(kube.read_namespaced_deployment(name=dep_config.metadata.name, namespace=dep_config.metadata.namespace).status.replicas != initial_count):
-                #print(f"sleeping: {1 * i} seconds")
-                time.sleep(1 * i)
-                i += 1
-        scale_down_times.append(t.interval)
+
+    with Timer() as t:
+        deployment_config.kube.patch_namespaced_deployment_scale(
+            deployment_config.config.metadata.name,
+            deployment_config.config.metadata.namespace,
+            {'spec': {'replicas': max_pod_count}}
+        )
+        while(deployment_config.kube.read_namespaced_deployment(name=deployment_config.config.metadata.name, namespace=deployment_config.config.metadata.namespace).status.ready_replicas != max_pod_count):
+            time.sleep(1)
+
+    scale_up_times.append(t.interval)
+
+    with Timer() as t:
+        deployment_config.kube.patch_namespaced_deployment_scale(
+            deployment_config.config.metadata.name,
+            deployment_config.config.metadata.namespace,
+            {'spec': {'replicas': initial_count}}
+        )
+        while(deployment_config.kube.read_namespaced_deployment(name=deployment_config.config.metadata.name, namespace=deployment_config.config.metadata.namespace).status.replicas != initial_count):
+            time.sleep(1)
+
+    scale_down_times.append(t.interval)
+    
     print(statistics.mean(scale_up_times))
     print(statistics.mean(scale_down_times))
 
 
 
+@pytest.fixture
+def load_config(deployment_name):
+    config.load_kube_config()
+    kube = client.AppsV1Api()
+
+    config = kube.read_namespaced_deployment(name=deployment_name, namespace="default")
+
+    # return the inital data object for the test. yield is used to indicated there is a tear down step afterwards
+    yield deployment_config(kube, config)
+
+    # revert to original state here
+    kube.replace_namespaced_deployment(name=config.metadata.name, namespace=config.metadata.namespace)
 
 
 @pytest.mark.benchmark(
@@ -63,14 +71,9 @@ def run(kube, dep_config):
     disable_gc=True,
     warmup=False
 )
-def test_scale_10(deployment_name, benchmark):
-    config.load_kube_config()
-    kube = client.AppsV1Api()
-
-    dep_config = kube.read_namespaced_deployment(name=deployment_name, namespace="default")
-
+def test_scale_10(load_config, benchmark):
     @benchmark
     def result():
-        return run(kube, dep_config)
+        return scale_up(deployment_config=load_config, max_pod_count=10)
 
     assert result is None
