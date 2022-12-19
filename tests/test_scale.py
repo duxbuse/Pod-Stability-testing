@@ -4,17 +4,8 @@ from kubernetes import client, config
 import pytest
 from collections import namedtuple
 
+# ------------Global Objects------------
 deployment_config_tuple = namedtuple('deployment_config', ['kube', 'config'])
-
-class Timer:    
-    def __enter__(self):
-        self.start = time.perf_counter()
-        return self
-
-    def __exit__(self, *args):
-        self.end = time.perf_counter()
-        self.interval = self.end - self.start
-
 
 def scale_to(deployment_config, pod_count):
     deployment_config.kube.patch_namespaced_deployment_scale(
@@ -29,6 +20,7 @@ def scale_to(deployment_config, pod_count):
         time.sleep(1 * i)
         i += 1
 
+# ------------FIXTURES------------
 
 @pytest.fixture
 def load_config(deployment_name):
@@ -52,6 +44,9 @@ def set_to_10(load_config):
 def set_to_0(load_config):
     return scale_to(load_config, 0)
 
+
+
+# ------------TESTS------------
 
 class TestScale:
     @pytest.mark.benchmark(
