@@ -29,7 +29,7 @@ def load_config(deployment_name):
 
     dep_config = kube.read_namespaced_deployment(name=deployment_name, namespace="default")
 
-    # return the inital data object for the test. yield is used to indicated there is a tear down step afterwards
+    # return the initial data object for the test. yield is used to indicated there is a tear down step afterwards
     deployment_config = deployment_config_tuple(kube, dep_config)
     yield deployment_config
 
@@ -61,10 +61,27 @@ class TestScale:
         warmup=False
     )
     @pytest.mark.dependency()
-    def test_scale_10(self, load_config, benchmark, set_to_0):
+    def test_scale_10_from_0(self, load_config, benchmark, set_to_0):
         @benchmark
         def result():
             return scale_to(deployment_config=load_config, pod_count=10)
+
+        assert result is None
+
+    @pytest.mark.benchmark(
+        group="scale-up",
+        min_time=0.1,
+        max_time=0.5,
+        min_rounds=5,
+        timer=time.time,
+        disable_gc=True,
+        warmup=False
+    )
+    @pytest.mark.dependency()
+    def test_scale_5_from_0(self, load_config, benchmark, set_to_0):
+        @benchmark
+        def result():
+            return scale_to(deployment_config=load_config, pod_count=5)
 
         assert result is None
 
@@ -78,8 +95,8 @@ class TestScale:
         disable_gc=True,
         warmup=False
     )
-    @pytest.mark.dependency(depends=["TestScale::test_scale_10"])
-    def test_scale_0(self, load_config, benchmark, set_to_10):
+    @pytest.mark.dependency()#depends=["TestScale::test_scale_10"]
+    def test_scale_0_from_10(self, load_config, benchmark, set_to_10):
         @benchmark
         def result():
             return scale_to(deployment_config=load_config, pod_count=0)
