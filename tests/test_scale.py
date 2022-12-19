@@ -38,7 +38,7 @@ def load_config(deployment_name):
 
 @pytest.fixture
 def set_to_10(load_config):
-    return scale_to(load_config, 10)
+    return scale_to(load_config, 1)
 
 @pytest.fixture
 def set_to_0(load_config):
@@ -49,8 +49,10 @@ def set_to_0(load_config):
 # ------------TESTS------------
 
 class TestScale:
+
+    # ------------SCALE UP------------
     @pytest.mark.benchmark(
-        group="group-name",
+        group="scale-up",
         min_time=0.1,
         max_time=0.5,
         min_rounds=5,
@@ -66,8 +68,9 @@ class TestScale:
 
         assert result is None
 
+    # ------------SCALE DOWN------------
     @pytest.mark.benchmark(
-        group="group-name",
+        group="scale-down",
         min_time=0.1,
         max_time=0.5,
         min_rounds=5,
@@ -75,7 +78,7 @@ class TestScale:
         disable_gc=True,
         warmup=False
     )
-    @pytest.mark.dependency(depends=["test_scale_10"])
+    @pytest.mark.dependency(depends=["TestScale::test_scale_10"])
     def test_scale_0(self, load_config, benchmark, set_to_10):
         @benchmark
         def result():
