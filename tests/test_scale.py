@@ -16,7 +16,7 @@ constants = {
     "tries": 5
 }
 
-def test(kube, dep_config):
+def run(kube, dep_config):
     initial_count = dep_config.spec.replicas
     scale_up_times = []
     scale_down_times = []
@@ -49,10 +49,11 @@ def test(kube, dep_config):
     print(statistics.mean(scale_up_times))
     print(statistics.mean(scale_down_times))
 
-if __name__ == "__main__":
+
+def test_scale_10(deployment_name):
     config.load_kube_config()
     kube = client.AppsV1Api()
 
-    dep_config = kube.read_namespaced_deployment(name="httpbin", namespace="default")
+    dep_config = kube.read_namespaced_deployment(name=deployment_name, namespace="default")
     #print(dep_config)
-    test(kube, dep_config)
+    run(kube, dep_config)
