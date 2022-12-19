@@ -1,6 +1,7 @@
 import time
 import statistics
 from kubernetes import client, config
+import pytest
 
 class Timer:    
     def __enter__(self):
@@ -50,10 +51,26 @@ def run(kube, dep_config):
     print(statistics.mean(scale_down_times))
 
 
-def test_scale_10(deployment_name):
+
+
+
+@pytest.mark.benchmark(
+    group="group-name",
+    min_time=0.1,
+    max_time=0.5,
+    min_rounds=5,
+    timer=time.time,
+    disable_gc=True,
+    warmup=False
+)
+def test_scale_10(deployment_name, benchmark):
     config.load_kube_config()
     kube = client.AppsV1Api()
 
     dep_config = kube.read_namespaced_deployment(name=deployment_name, namespace="default")
-    #print(dep_config)
-    run(kube, dep_config)
+
+    @benchmark
+    def result():
+        return run(kube, dep_config)
+
+    assert result is None
