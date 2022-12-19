@@ -4,7 +4,7 @@ from kubernetes import client, config
 import pytest
 from collections import namedtuple
 
-deployment_config = namedtuple('deployment_config', ['kube', 'config'])
+deployment_config_tuple = namedtuple('deployment_config', ['kube', 'config'])
 
 class Timer:    
     def __enter__(self):
@@ -38,10 +38,11 @@ def load_config(deployment_name):
     dep_config = kube.read_namespaced_deployment(name=deployment_name, namespace="default")
 
     # return the inital data object for the test. yield is used to indicated there is a tear down step afterwards
-    yield deployment_config(kube, dep_config)
+    deployment_config = deployment_config_tuple(kube, dep_config)
+    yield deployment_config
 
     # revert to original state here
-    kube.replace_namespaced_deployment(name=dep_config.metadata.name, namespace=dep_config.metadata.namespace, body=dep_config)
+    scale_to(deployment_config, dep_config.spec.replicas)
 
 @pytest.fixture
 def set_to_10(load_config):
@@ -63,10 +64,9 @@ class TestScale:
         warmup=False
     )
     @pytest.mark.dependency()
-    def test_scale_10(load_config, benchmark, set_to_0):
+    def test_scale_10(self, load_config, benchmark, set_to_0):
         @benchmark
         def result():
-            print("running 10")
             return scale_to(deployment_config=load_config, pod_count=10)
 
         assert result is None
@@ -81,10 +81,9 @@ class TestScale:
         warmup=False
     )
     @pytest.mark.dependency(depends=["test_scale_10"])
-    def test_scale_0(load_config, benchmark, set_to_10):
+    def test_scale_0(self, load_config, benchmark, set_to_10):
         @benchmark
         def result():
-            print("running 0")
             return scale_to(deployment_config=load_config, pod_count=0)
 
         assert result is None
