@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: httpbin-fail
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin-fail
+  labels:
+    app: httpbin-fail
+    service: httpbin-fail
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 80
+  selector:
+    app: httpbin-fail
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpbin-fail
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: httpbin-fail
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: httpbin-fail
+        version: v1
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - httpbin-fail
+            topologyKey: kubernetes.io/hostname
+      serviceAccountName: httpbin-fail
+      containers:
+      - image: httpbinarm64:latest
+        imagePullPolicy: IfNotPresent
+        name: httpbin-fail
+        ports:
+        - containerPort: 80

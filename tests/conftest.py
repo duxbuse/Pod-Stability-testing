@@ -18,6 +18,7 @@ def scale_to(deployment_config, pod_count):
             raise ValueError(f"Scaling Failed.\n{deployment_config.config.status.ready_replicas=} != {deployment_config.config.spec.replicas=}")
         time.sleep(1 * i)
         i += 1
+    return True
 
 
 def pytest_addoption(parser):
