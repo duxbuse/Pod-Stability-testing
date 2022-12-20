@@ -13,9 +13,15 @@ def scale_to(deployment_config, pod_count):
         {'spec': {'replicas': pod_count}}
     )
     i = 1
-    while((deployment_config.kube.read_namespaced_deployment(name=deployment_config.config.metadata.name, namespace=deployment_config.config.metadata.namespace).status.ready_replicas or 0) != pod_count):
+    while(
+            (ready_replicas:=deployment_config.kube.read_namespaced_deployment(
+                name=deployment_config.config.metadata.name,
+                namespace=deployment_config.config.metadata.namespace
+            ).status.ready_replicas or 0) != pod_count
+        ):
         if(i == 5):
-            raise ValueError(f"Scaling Failed.\n{deployment_config.config.status.ready_replicas=} != {deployment_config.config.spec.replicas=}")
+            break
+            # raise ValueError(f"Scaling Failed.\n{ready_replicas=} != {pod_count=}")
         time.sleep(1 * i)
         i += 1
 
