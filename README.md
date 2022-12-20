@@ -23,6 +23,9 @@ Each test defined as it’s own script
 Json object returned for reporting
 Generates report
 
-— main.py
-	— /tests
-		— test1.py (test(k, d))
+
+## Usage
+
+The whole things is designed as a pytest suite.
+There is also the appropriate vscode config set up.
+But otherwise running `pytest --deployment abc --namespace default` will run the suite targeting the relevant deployment and namespace.
