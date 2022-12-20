@@ -1,11 +1,6 @@
 import time
-import statistics
-from kubernetes import client, config
 import pytest
-from collections import namedtuple
 
-# ------------Global Objects------------
-deployment_config_tuple = namedtuple('deployment_config', ['kube', 'config'])
 
 def scale_to(deployment_config, pod_count):
     deployment_config.kube.patch_namespaced_deployment_scale(
@@ -21,20 +16,6 @@ def scale_to(deployment_config, pod_count):
         i += 1
 
 # ------------FIXTURES------------
-
-@pytest.fixture
-def load_config(deployment_name):
-    config.load_kube_config()
-    kube = client.AppsV1Api()
-
-    dep_config = kube.read_namespaced_deployment(name=deployment_name, namespace="default")
-
-    # return the initial data object for the test. yield is used to indicated there is a tear down step afterwards
-    deployment_config = deployment_config_tuple(kube, dep_config)
-    yield deployment_config
-
-    # revert to original state here
-    scale_to(deployment_config, dep_config.spec.replicas)
 
 @pytest.fixture
 def set_to_10(load_config):
@@ -53,16 +34,12 @@ def set_to_0(load_config):
 # ------------TESTS------------
 
 class TestScaleUp:
-
     # ------------SCALE 0-10------------
     @pytest.mark.benchmark(
         group="scale-up",
         min_time=0.1,
         max_time=0.5,
         min_rounds=5,
-        timer=time.time,
-        disable_gc=True,
-        warmup=False
     )
     @pytest.mark.dependency()
     def test_scale_0_to_10(self, load_config, benchmark, set_to_0):
@@ -78,9 +55,6 @@ class TestScaleUp:
         min_time=0.1,
         max_time=0.5,
         min_rounds=5,
-        timer=time.time,
-        disable_gc=True,
-        warmup=False
     )
     @pytest.mark.dependency()
     def test_scale_0_to_5(self, load_config, benchmark, set_to_0):
@@ -96,9 +70,6 @@ class TestScaleUp:
         min_time=0.1,
         max_time=0.5,
         min_rounds=5,
-        timer=time.time,
-        disable_gc=True,
-        warmup=False
     )
     @pytest.mark.dependency()
     def test_scale_5_to_10(self, load_config, benchmark, set_to_5):
@@ -111,15 +82,12 @@ class TestScaleUp:
     
 
 class TestScaleDown:
-    # ------------SCALE DOWN------------
+    # ------------SCALE 10-0------------
     @pytest.mark.benchmark(
         group="scale-down",
         min_time=0.1,
         max_time=0.5,
         min_rounds=5,
-        timer=time.time,
-        disable_gc=True,
-        warmup=False
     )
     @pytest.mark.dependency()#depends=["TestScaleUp::test_scale_10"]
     def test_scale_10_to_0(self, load_config, benchmark, set_to_10):
@@ -130,14 +98,12 @@ class TestScaleDown:
         assert result is None
 
 
+    # ------------SCALE 10-5------------
     @pytest.mark.benchmark(
         group="scale-down",
         min_time=0.1,
         max_time=0.5,
         min_rounds=5,
-        timer=time.time,
-        disable_gc=True,
-        warmup=False
     )
     @pytest.mark.dependency()
     def test_scale_10_to_5(self, load_config, benchmark, set_to_10):
