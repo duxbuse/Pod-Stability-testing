@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: httpbin-randomwait
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin-randomwait
+  labels:
+    app: httpbin-randomwait
+    service: httpbin-randomwait
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 80
+  selector:
+    app: httpbin-randomwait
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpbin-randomwait
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: httpbin-randomwait
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: httpbin-randomwait
+        version: v1
+    spec:
+      serviceAccountName: httpbin-randomwait
+      containers:
+      - image: httpbinarm64:latest
+        imagePullPolicy: IfNotPresent
+        name: httpbin-randomwait
+        args:
+        - /bin/bash
+        - -c
+        - export SLEEP_TIME=$(($RANDOM % 5)); echo $SLEEP_TIME; sleep $SLEEP_TIME; touch /tmp/healthy; gunicorn -b 0.0.0.0:80 httpbin:app -k gevent;
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          exec:
+            command:
+            - cat
+            - /tmp/healthy
+          initialDelaySeconds: 5
+          periodSeconds: 5

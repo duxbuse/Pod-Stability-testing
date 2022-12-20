@@ -1,100 +1,84 @@
 import pytest
 from conftest import scale_to
 
-# ------------FIXTURES------------
-
-@pytest.fixture
-def set_to_10(load_config):
-    return scale_to(load_config, 10)
-
-@pytest.fixture
-def set_to_5(load_config):
-    return scale_to(load_config, 5)
-
-@pytest.fixture
-def set_to_0(load_config):
-    return scale_to(load_config, 0)
-
-
-
 # ------------TESTS------------
 
 class TestScaleUp:
-    # ------------SCALE 0-10------------
+    # ------------SCALE 0-3------------
     @pytest.mark.benchmark(
-        group="scale-up",
-        min_time=0.1,
-        max_time=0.5,
-        min_rounds=5,
+        group="scale-up"
     )
     @pytest.mark.dependency()
-    def test_scale_0_to_10(self, load_config, benchmark, set_to_0):
-        @benchmark
+    def test_scale_0_to_3(self, load_config, benchmark):
+        results = []
+        def setup():
+            scale_to(load_config, 0)
         def result():
-            return scale_to(deployment_config=load_config, pod_count=10)
+            results.append(scale_to(deployment_config=load_config, pod_count=3))
+        benchmark.pedantic(result, setup=setup, rounds=3, iterations=1)
 
-        assert result is None
+        assert all(results) is True
 
-    # ------------SCALE 0-5------------
+    # ------------SCALE 0-1------------
     @pytest.mark.benchmark(
-        group="scale-up",
-        min_time=0.1,
-        max_time=0.5,
-        min_rounds=5,
+        group="scale-up"
     )
     @pytest.mark.dependency()
-    def test_scale_0_to_5(self, load_config, benchmark, set_to_0):
-        @benchmark
+    def test_scale_0_to_1(self, load_config, benchmark):
+        results = []
+        def setup():
+            scale_to(load_config, 0)
         def result():
-            return scale_to(deployment_config=load_config, pod_count=5)
+            results.append(scale_to(deployment_config=load_config, pod_count=1))
+        benchmark.pedantic(result, setup=setup, rounds=3, iterations=1)
 
-        assert result is None
+        assert all(results) is True
 
-    # ------------SCALE 5-10------------
+    # ------------SCALE 1-3------------
     @pytest.mark.benchmark(
-        group="scale-up",
-        min_time=0.1,
-        max_time=0.5,
-        min_rounds=5,
+        group="scale-up"
     )
     @pytest.mark.dependency()
-    def test_scale_5_to_10(self, load_config, benchmark, set_to_5):
-        @benchmark
+    def test_scale_1_to_3(self, load_config, benchmark):
+        results = []
+        def setup():
+            scale_to(load_config, 1)
         def result():
-            return scale_to(deployment_config=load_config, pod_count=10)
+            results.append(scale_to(deployment_config=load_config, pod_count=3))
+        benchmark.pedantic(result, setup=setup, rounds=3, iterations=1)
 
-        assert result is None
+        assert all(results) is True
 
     
 
 class TestScaleDown:
-    # ------------SCALE 10-0------------
+    # ------------SCALE 3-0------------
     @pytest.mark.benchmark(
-        group="scale-down",
-        min_time=0.1,
-        max_time=0.5,
-        min_rounds=5,
+        group="scale-down"
     )
-    @pytest.mark.dependency()#depends=["TestScaleUp::test_scale_10"]
-    def test_scale_10_to_0(self, load_config, benchmark, set_to_10):
-        @benchmark
+    @pytest.mark.dependency()#depends=["TestScaleUp::test_scale_3"]
+    def test_scale_3_to_0(self, load_config, benchmark):
+        results = []
+        def setup():
+            scale_to(load_config, 3)
         def result():
-            return scale_to(deployment_config=load_config, pod_count=0)
+            results.append(scale_to(deployment_config=load_config, pod_count=0))
+        benchmark.pedantic(result, setup=setup, rounds=3, iterations=1)
 
-        assert result is None
+        assert all(results) is True
 
 
-    # ------------SCALE 10-5------------
+    # ------------SCALE 3-1------------
     @pytest.mark.benchmark(
-        group="scale-down",
-        min_time=0.1,
-        max_time=0.5,
-        min_rounds=5,
+        group="scale-down"
     )
     @pytest.mark.dependency()
-    def test_scale_10_to_5(self, load_config, benchmark, set_to_10):
-        @benchmark
+    def test_scale_3_to_1(self, load_config, benchmark):
+        results = []
+        def setup():
+            scale_to(load_config, 3)
         def result():
-            return scale_to(deployment_config=load_config, pod_count=5)
+            results.append(scale_to(deployment_config=load_config, pod_count=1))
+        benchmark.pedantic(result, setup=setup, rounds=3, iterations=1)
 
-        assert result is None
+        assert all(results) is True
