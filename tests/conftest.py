@@ -1,12 +1,23 @@
 import pytest
-from kubernetes import client, config, utils
+from kubernetes import client, config
 from collections import namedtuple
 import time
 
 # ------------Global Objects------------
 deployment_config_tuple = namedtuple('deployment_config', ['kube', 'config'])
 
-
+def scale_to(deployment_config, pod_count):
+    deployment_config.kube.patch_namespaced_deployment_scale(
+        deployment_config.config.metadata.name,
+        deployment_config.config.metadata.namespace,
+        {'spec': {'replicas': pod_count}}
+    )
+    i = 1
+    while((deployment_config.kube.read_namespaced_deployment(name=deployment_config.config.metadata.name, namespace=deployment_config.config.metadata.namespace).status.ready_replicas or 0) != pod_count):
+        if(i == 5):
+            raise ValueError(f"Scaling Failed.\n{deployment_config.config.status.ready_replicas=} != {deployment_config.config.spec.replicas=}")
+        time.sleep(1 * i)
+        i += 1
 
 
 def pytest_addoption(parser):
@@ -49,16 +60,4 @@ def load_config(deployment_name, namespace):
     #     body=deployment_config
     # )
 
-    kube.patch_namespaced_deployment_scale(
-        name=deployment_config.metadata.name,
-        namespace=namespace,
-        body={'spec': {'replicas': deployment_config.spec.replicas}}
-    )
-
-    # Check that its all healthy
-    i = 1
-    while((kube.read_namespaced_deployment(name=deployment_config.metadata.name, namespace=namespace).status.ready_replicas or 0) != deployment_config.spec.replicas):
-        if(i == 5):
-            raise ValueError(f"Resetting original state failed.\n{deployment_config.status.ready_replicas=} != {deployment_config.spec.replicas=}")
-        time.sleep(1 * i)
-        i += 1
+    scale_to(deployment_config=deployment_config, pod_count=deployment_config.spec.replicas)

@@ -1,19 +1,5 @@
-import time
 import pytest
-
-
-def scale_to(deployment_config, pod_count):
-    deployment_config.kube.patch_namespaced_deployment_scale(
-        deployment_config.config.metadata.name,
-        deployment_config.config.metadata.namespace,
-        {'spec': {'replicas': pod_count}}
-    )
-    i = 1
-    while(deployment_config.kube.read_namespaced_deployment(name=deployment_config.config.metadata.name, namespace=deployment_config.config.metadata.namespace).status.ready_replicas != pod_count):
-        if(i == 5):
-            break
-        time.sleep(1 * i)
-        i += 1
+from conftest import scale_to
 
 # ------------FIXTURES------------
 
