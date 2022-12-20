@@ -49,9 +49,11 @@ def load_config(deployment_name, namespace):
     config.load_kube_config()
     kube = client.AppsV1Api()
 
-    deployment_config = kube.read_namespaced_deployment(name=deployment_name, namespace=namespace)
+    dep_config = kube.read_namespaced_deployment(name=deployment_name, namespace=namespace)
 
-    yield deployment_config_tuple(kube, deployment_config)
+    deployment_config = deployment_config_tuple(kube, dep_config)
+
+    yield deployment_config
 
     # revert to original state after test is finished
 
@@ -67,4 +69,4 @@ def load_config(deployment_name, namespace):
     #     body=deployment_config
     # )
 
-    scale_to(deployment_config=deployment_config, pod_count=deployment_config.spec.replicas)
+    scale_to(deployment_config=deployment_config, pod_count=dep_config.spec.replicas)
