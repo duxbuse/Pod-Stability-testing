@@ -2,7 +2,6 @@ import pytest
 from conftest import scale_to
 
 # ------------TESTS------------
-
 class TestScaleUp:
     # ------------SCALE 0-3------------
     @pytest.mark.benchmark(
@@ -50,7 +49,6 @@ class TestScaleUp:
         assert all(results) is True
 
     
-
 class TestScaleDown:
     # ------------SCALE 3-0------------
     @pytest.mark.benchmark(

@@ -19,9 +19,8 @@ def scale_to(deployment_config, pod_count):
                 namespace=deployment_config.config.metadata.namespace
             ).status.ready_replicas or 0) != pod_count
         ):
-        if(i == 5):
-            break
-            # raise ValueError(f"Scaling Failed.\n{ready_replicas=} != {pod_count=}")
+        if(i == 8): #exponential back off following 'N*(N+1)/2'; N=7 results in roughly 30sec
+            raise ValueError(f"Scaling Failed.\n{ready_replicas=} != {pod_count=}")
         time.sleep(1 * i)
         i += 1
     return True
@@ -36,6 +35,8 @@ def pytest_addoption(parser):
     )
 
 
+# ------------Global Fixtures------------
+
 @pytest.fixture
 def deployment_name(request):
     return request.config.getoption("--deployment")
@@ -48,7 +49,6 @@ def namespace(request):
 def load_config(deployment_name, namespace):
     config.load_kube_config()
     kube = client.AppsV1Api()
-
     dep_config = kube.read_namespaced_deployment(name=deployment_name, namespace=namespace)
 
     deployment_config = deployment_config_tuple(kube, dep_config)
