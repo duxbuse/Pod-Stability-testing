@@ -54,7 +54,7 @@ class TestScaleDown:
     @pytest.mark.benchmark(
         group="scale-down"
     )
-    @pytest.mark.dependency()#depends=["TestScaleUp::test_scale_3"]
+    @pytest.mark.dependency()
     def test_scale_3_to_0(self, load_config, benchmark):
         results = []
         def setup():
@@ -77,6 +77,21 @@ class TestScaleDown:
             scale_to(load_config, 3)
         def result():
             results.append(scale_to(deployment_config=load_config, pod_count=1))
+        benchmark.pedantic(result, setup=setup, rounds=3, iterations=1)
+
+        assert all(results) is True
+
+    # ------------SCALE 1-0------------
+    @pytest.mark.benchmark(
+        group="scale-down"
+    )
+    @pytest.mark.dependency()
+    def test_scale_1_to_0(self, load_config, benchmark):
+        results = []
+        def setup():
+            scale_to(load_config, 1)
+        def result():
+            results.append(scale_to(deployment_config=load_config, pod_count=0))
         benchmark.pedantic(result, setup=setup, rounds=3, iterations=1)
 
         assert all(results) is True

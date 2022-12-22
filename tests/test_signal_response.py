@@ -1,6 +1,5 @@
 import pytest
 import time
-from datetime import datetime, timezone, timedelta
 from conftest import scale_to
 from kubernetes import config
 from kubernetes.client.api import core_v1_api
