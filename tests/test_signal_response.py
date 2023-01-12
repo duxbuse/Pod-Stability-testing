@@ -78,6 +78,7 @@ class TestSIGINT:
             resp = exec_sig_pid1(api_instance=core_v1, pod_name=pod_name, namespace=namespace, signal="SIGINT")
 
             #check it restarted
+            ##INFO There may be a better way to check for deletion using 'kubectl wait'
             assert check_pod_restarted(core_v1=core_v1, name=pod_name, namespace=namespace, initial_restart_count=pre_count)
             
 

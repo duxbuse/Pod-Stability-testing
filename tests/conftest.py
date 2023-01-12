@@ -2,6 +2,7 @@ import pytest
 from kubernetes import client, config
 from collections import namedtuple
 import time
+import os
 
 # ------------Global Objects------------
 deployment_config_tuple = namedtuple('deployment_config', ['kube', 'config'])
@@ -51,22 +52,37 @@ def load_config(deployment_name, namespace):
     kube = client.AppsV1Api()
     dep_config = kube.read_namespaced_deployment(name=deployment_name, namespace=namespace)
 
+
     deployment_config = deployment_config_tuple(kube, dep_config)
 
     yield deployment_config
 
+    # -------------------------------------------------
     # revert to original state after test is finished
+    '''
+    We have to resort to calling kubectl commands directly cause the library has some issues documented below
+    '''
+    og_config_dict = dep_config.to_dict()
+    del og_config_dict["metadata"]["creation_timestamp"]
+    del og_config_dict["metadata"]["resource_version"]
+    del og_config_dict["metadata"]["self_link"]
+    del og_config_dict["metadata"]["uid"]
+
+    os.system(f"kubectl --namespace {namespace} apply -f  - {og_config_dict}")
+    os.system(f"kubectl --namespace {namespace} wait --for=condition=available --timeout=60s deployment/{dep_config.metadata.name}")
 
 
-    """
-    For some reason replacing the whole deployment has the below error. So instead we will just reset the scale.
-
-    HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Operation cannot be fulfilled on deployments.apps \"httpbin\": the object has been modified; please apply your changes to the latest version and try again","reason":"Conflict","details":{"name":"httpbin","group":"apps","kind":"deployments"},"code":409}
-    """
-    # kube.replace_namespaced_deployment(
-    #     name=deployment_config.metadata.name,
+    # -------------------------------------------------
+    '''
+    This is all we should have to do to reset the state.
+    But the `force=true` is only available for `apply-patch` type merges.
+    Currently the `patch_namespaced_deployment` does not allow the selection of the patch type https://github.com/kubernetes-client/python/issues/1202
+    work around is to execute kubectl commands directly
+    '''
+    # kube.patch_namespaced_deployment(
+    #     name=dep_config.metadata.name,
     #     namespace=namespace,
-    #     body=deployment_config
+    #     body=dep_config,
+    #     field_manager="application/apply-patch",
+    #     force=True
     # )
-
-    scale_to(deployment_config=deployment_config, pod_count=dep_config.spec.replicas)
