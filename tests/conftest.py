@@ -29,7 +29,7 @@ def scale_to(deployment_config, pod_count):
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--deployment", action="store", default="httpbin", help="Name of the kubernetes deployment"
+        "--deployment", action="store", help="Name of the kubernetes deployment"
     )
     parser.addoption(
         "--namespace", action="store", default="default", help="Name of the kubernetes namespace"
